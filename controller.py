@@ -14,7 +14,8 @@ class Controller:
         self.navigator = navigator.setup()
         self.robot = robot.setup()
         self._Hz = hz
-        # Register a pointer to itself in each module so they can find the controller
+        # Register a pointer to itself in each module so they can find the controller ???
+        # Note: please confirm this is correct
         self.planner.controller = self
         self.navigator.controller = self
         self.robot.controller = self

@@ -1,5 +1,7 @@
 from robot import Robot
 from epucklib.epuck_com import EPuckCom
+from epucklib.epuck_state import EPuckState
+from epuck_lib import calc_and_print_pose
 import time
 
 class RobotEPuck(Robot):
@@ -10,6 +12,7 @@ class RobotEPuck(Robot):
         else:
             self.com_port = com_port
             self.epuckcomm = None
+            self.state = EPuckState()
 
     def setup(self):
         self.epuckcomm = EPuckCom(self.com_port, debug=False)
@@ -33,7 +36,12 @@ class RobotEPuck(Robot):
         self.epuckcomm.close()
 
     def odom_reset(self):
-        self.robot_pos = (0, 0, )
+        self.robot_pos = (0, 0, 0)
 
-    def odom_update(self, pos):
-
+    def odom_update(self):
+        current_pose = self.robot_pos
+        r_last_left_steps = self.epuckcomm.state.sens_left_motor_steps
+        r_last_right_steps = self.epuckcomm.state.sens_right_motor_steps
+        # Calculate new robot pose 
+        self.robot_pos = calc_and_print_pose(current_pose, r_last_left_steps, r_last_right_steps)[0] # get the new pose only
+        return self.robot_pos

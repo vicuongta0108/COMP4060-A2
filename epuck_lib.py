@@ -249,3 +249,12 @@ def move_steps(epuckcomm, l_speed_steps_s, r_speed_steps_s,
         epuckcomm.stop_all()
 
     return (left_steps, right_steps)
+
+# Calculate new pose and print
+def calc_and_print_pose(epuckcomm, old_pos, last_l_steps, last_r_steps):
+    left_steps = steps_delta(last_l_steps, epuckcomm.state.sens_left_motor_steps)
+    right_steps = steps_delta(last_r_steps, epuckcomm.state.sens_right_motor_steps)
+    new_pos = diff_drive_forward_kin(old_pos, left_steps, right_steps)
+    print('Robot Position:', end="")
+    print_pose(new_pos)
+    return new_pos, epuckcomm.state.sens_left_motor_steps, epuckcomm.state.sens_right_motor_steps

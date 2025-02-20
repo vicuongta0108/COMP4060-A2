@@ -2,9 +2,7 @@ from abc import ABC, abstractmethod
 
 class Planner(ABC):
     def __init__(self, target):
-        self._running = False
         self.target_reached = False
-        self.controller = None
         self.target = target
 
     @abstractmethod
@@ -14,8 +12,8 @@ class Planner(ABC):
     # Return True if still running, False if done planning
     @abstractmethod
     def update(self):
-        return self._running
-
+        pass
+    
     @abstractmethod
     def terminate(self):
         pass
