@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod
 
 class Navigator(ABC):
     def __init__(self):
-        self.target = None
-        self.target_reached = False
+        self._target = None
+        self._target_reached = False
 
     @abstractmethod
     def setup(self):
@@ -20,4 +20,4 @@ class Navigator(ABC):
 
     @abstractmethod
     def set_target(self, target):
-        self.target = target
+        pass
