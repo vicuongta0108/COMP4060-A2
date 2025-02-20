@@ -1,10 +1,9 @@
-# Abstract base class for Navigator module
 from abc import ABC, abstractmethod
 
 class Navigator(ABC):
     def __init__(self):
-        self._target = None
-        self._target_reached = False
+        self.target = None
+        self.has_hit_target = False
 
     @abstractmethod
     def setup(self):
@@ -15,9 +14,9 @@ class Navigator(ABC):
         pass
 
     @abstractmethod
-    def terminate(self):
+    def terminate(self, epuckcomm):
         pass
 
     @abstractmethod
-    def set_target(self, target):
+    def set_target(self, epuckcomm, target):
         pass

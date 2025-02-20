@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 
 class Planner(ABC):
-    def __init__(self):
-        self._running = True
-        self.target = None
+    def __init__(self, target):
+        self._running = False
         self.target_reached = False
         self.controller = None
+        self.target = target
 
     @abstractmethod
     def setup(self):
