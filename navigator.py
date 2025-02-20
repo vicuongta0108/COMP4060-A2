@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 
+from controller import Controller
+
 class Navigator(ABC):
     def __init__(self):
-        self.target = None
         self.has_hit_target = False
 
     @abstractmethod
@@ -14,9 +15,9 @@ class Navigator(ABC):
         pass
 
     @abstractmethod
-    def terminate(self, epuckcomm):
+    def terminate(self):
         pass
 
     @abstractmethod
-    def set_target(self, epuckcomm, target):
+    def set_target(self, target):
         pass

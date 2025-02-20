@@ -14,7 +14,7 @@ class State(ABC):
     
     @abstractmethod
     def update(self):  #called every tick, a state transition to itself
-        # manage the nagivator and access robot state in here.
+        # manage the navigator and access robot state in here.
         pass  ### IMPORTANT: returns the current state, e.g., self or new state transitioned to.
     
     @abstractmethod
@@ -57,5 +57,3 @@ class State(ABC):
 # self.transition_to(self.parent.s_follow_line)
 # 
 # the transition_to method calls the appropriate exit and enter functions
-
-        

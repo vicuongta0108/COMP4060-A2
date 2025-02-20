@@ -1,23 +1,26 @@
 # Takes a target movement and converts this into robot motion commands.
 from navigator import Navigator
-from epuck_lib import move_steps, diff_drive_inverse_kin
+from robot import Robot
+from epuck_lib import diff_drive_inverse_kin, move_steps
+MAX_SPEED = 1000
 
 class NavigatorDiffSimple(Navigator):
     def __init__(self):
         super().__init__()
+        self.target = None
+        self.moving = None
+        self.epuckcomm = Robot.setup
 
     def setup(self):
-        print("NavigatorDiffSimple.setup()")
+        pass
 
-    def update(self):
-        print("NavigatorDiffSimple.update()")
+    def set_target(self, target):
+        distance_mm, speed_percent, delta_theta_rad = target
 
-    def terminate(self, epuckcomm):
-        epuckcomm.stop_all()
-        epuckcomm.close()
-        print("Robot stopped!")
+        distance_moved = move_steps(self.epuckcomm, *diff_drive_inverse_kin(distance_mm, speed_percent, delta_theta_rad))
 
-    def set_target(self, epuckcomm, target):
-        move_steps(epuckcomm, *target)
+
+
+
 
 

@@ -26,7 +26,6 @@ class Controller:
             # Call the update functions of the other modules in each iteration
             if not self.planner.update():
                 self._running = False
-            self.planner.update()
             self.navigator.update()
             self.robot.update()
             # Sleep to maintain the target Hz

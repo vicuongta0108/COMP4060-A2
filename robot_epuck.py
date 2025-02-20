@@ -20,6 +20,8 @@ class RobotEPuck(Robot):
 
         self.epuckcomm.enable_sensors = True
 
+        return self.epuckcomm
+
     def update(self):
         self.epuckcomm.send_command()
         print("Giving time for robot to get ready...")
@@ -29,4 +31,9 @@ class RobotEPuck(Robot):
     def terminate(self):
         self.epuckcomm.stop_all()
         self.epuckcomm.close()
+
+    def odom_reset(self):
+        self.robot_pos = (0, 0, )
+
+    def odom_update(self, pos):
 

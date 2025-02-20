@@ -4,7 +4,7 @@ from epucklib.epuck_state import EPuckState
 class Robot(ABC):
     def __init__(self):
         self.robot_pos = None
-        self.state = EPuckState()
+        self.state = None
 
     @abstractmethod
     def setup(self):
