@@ -1,35 +1,39 @@
-# Takes a target movement and converts this into robot motion commands.
 from navigator import Navigator
-from robot_epuck import RobotEPuck
-from epuck_lib import diff_drive_inverse_kin, move_steps
-import time
+from robot import Robot
+from epuck_lib import diff_drive_forward_kin, diff_drive_inverse_kin, move_steps
 
 MAX_SPEED = 1000
-MIN_SPEED = 100
+MIN_SPEED = 500
 
 class NavigatorDiffSimple(Navigator):
     def __init__(self):
         super().__init__()
-        self.target_mm = None
+        self.robot = None
         self.moved_mm = None
-        self.epuckcomm = None
+        self.target_mm = None
 
-    def setup(self):
-        self.target_mm = 0
+    def setup(self, com_port):
+        self.robot = Robot(com_port)
         self.moved_mm = 0
-        self.epuckcomm = RobotEPuck.setup()
+        self.target_mm = 0
+        print("Navigator finish setup!")
 
     def update(self):
-        # Moved distance
-        self.moved_mm += RobotEPuck.odom_update()
+        # Update Odometry
+        self.moved_mm += self.robot.odom_update()
+        # Tell the robot to move
         speed = (1 - self.moved_mm / self.target_mm) * (MAX_SPEED - MIN_SPEED) + MIN_SPEED
+        self.robot.state.act_left_motor_speed = speed
+        self.robot.state.act_right_motor_speed = speed
+        # Monitor how much the robot has moved
         
 
 
-    # Stop robot movement
     def terminate(self):
-        RobotEPuck.terminate()
+        self.robot.stop_all()
+        self.robot.close()
+        print("Navigator terminated")
 
-    # Return target distance for robot to move
+    # Use the given target tuple and A1 kinematics to solve how the robot should move.
     def set_target(self, target):
-        self.target_mm = move_steps(self.epuckcomm, *diff_drive_inverse_kin(target))
+        self.target_mm = diff_drive_inverse_kin(*target)

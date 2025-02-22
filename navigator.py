@@ -1,13 +1,11 @@
 from abc import ABC, abstractmethod
 
-from controller import Controller
-
 class Navigator(ABC):
     def __init__(self):
-        self.has_hit_target = False
+        self.has_hit_target = True
 
     @abstractmethod
-    def setup(self):
+    def setup(self, com_port):
         pass
 
     @abstractmethod

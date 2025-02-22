@@ -1,21 +1,20 @@
 from planner import Planner
-import navigator as Navigator
+from navigator import Navigator
 
 class PlannerMoveOnce(Planner):
-    # Take a simple target as a tuple (distance_mm, speed_percent, delta_theta_rad) in its constructor
     def __init__(self, target):
-        super().__init__(target)
+        super().__init__()
+        self.target = target # tuple of target example use: PlannerMoveOnce( (300, 1, math.pi/2) )
+        self.navigator = Navigator() # monitoring navigator
 
     def setup(self):
-        self.target_reached = False
+        print("Planner finish setup!")
 
-    # Give the target tuple to monitoring navigator and return False when the target is reached
     def update(self):
-        if not self.target_reached:
-            Navigator.set_target(self.target)
-            self.target_reached = True
-            return True
-        return False
+        if not self.navigator.has_hit_target:
+            self.navigator.set_target(self.target)  # give target to monitoring navigator
+            self.navigator.has_hit_target = False # returns false when the target is reached
+        return self.navigator.has_hit_target
 
     def terminate(self):
-        print("Planner terminated!")
+        print("Planner terminated")

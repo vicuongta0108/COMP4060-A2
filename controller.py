@@ -1,11 +1,11 @@
 import time
 
 class Controller:
-    def __init__(self, planner, navigator, robot, hz=10):
-        self.planner = planner
-        self.navigator = navigator
-        self.robot = robot
-        self._Hz = hz
+    def __init__(self):
+        self.planner = None
+        self.navigator = None
+        self.robot = None
+        self._Hz = None
         self._running = False
 
     def setup(self, planner, navigator, robot, hz=10):
