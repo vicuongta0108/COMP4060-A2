@@ -1,44 +1,58 @@
 from robot import Robot
 from epucklib.epuck_com import EPuckCom
 from epuck_lib import steps_delta, diff_drive_forward_kin
+import sys
 
 class RobotEPuck(Robot):
     def __init__(self, com_port: str):
         super().__init__(com_port)
-        self.epuckcomm = None
+        self._epuckcomm = None
+        self._controller = None
+        self._robot_pose = None
+        self._com_port = com_port
+        self._state = None
 
     def get_epuckcomm(self):
-        epuckcomm = EPuckCom(self.com_port, debug=False)
-        if not self.epuckcomm.connect():
+        self._epuckcomm = EPuckCom(self._com_port, debug=False)
+        if not self._epuckcomm.connect():
             print("Cannot connect to robot. Quitting :(")
-            return None
+            sys.exit(0)
 
-        return epuckcomm
+        return self._epuckcomm
 
     def setup(self):
-        self.epuckcomm = self.get_epuckcomm()
+        self._epuckcomm = self.get_epuckcomm()
 
-        if not self.epuckcomm:
+        if not self._epuckcomm:
             return
 
-        self.epuckcomm.enable_sensors = True
+        self._epuckcomm.enable_sensors = True
+        self._epuckcomm.data_update()
+        self._state = self._epuckcomm.state
+        self._robot_pose = (0.0, 0.0, 0.0)
 
     def update(self):
-        self.epuckcomm.send_command()
+        self._epuckcomm.state = self._state
+        # print(self._state)
+        self._epuckcomm.send_command()
 
     def terminate(self):
-        self.epuckcomm.stop_all()
-        self.epuckcomm.close()
+        self._epuckcomm.stop_all()
+        self._epuckcomm.close()
+        self._epuckcomm = None
 
     def odom_reset(self):
         self.robot_pose = (0.0, 0.0, 0.0)
 
     def odom_update(self):
-        last_l_step = self.state.sens_left_motor_steps
-        last_r_step = self.state.sens_right_motor_steps
+        last_l_step = self._epuckcomm.state.sens_left_motor_steps
+        last_r_step = self._epuckcomm.state.sens_right_motor_steps
+        
+        self._epuckcomm.data_update()
+        self._state = self._epuckcomm.state
 
-        left_steps = steps_delta(last_l_step, self.state.sens_left_motor_steps)
-        right_steps = steps_delta(last_r_step, self.state.sens_right_motor_steps)
-        self.robot_pose = diff_drive_forward_kin(self.robot_pose, left_steps, right_steps) # update new pose
+        left_steps = steps_delta(last_l_step, self._state.sens_left_motor_steps)
+        right_steps = steps_delta(last_r_step, self._state.sens_right_motor_steps)
+        self._robot_pose = diff_drive_forward_kin(self._robot_pose, left_steps, right_steps) # update new pose
 
-        return self.robot_pose
+        return self._state, self._robot_pose

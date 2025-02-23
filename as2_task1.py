@@ -2,7 +2,7 @@ import math
 import robot_epuck, planner_move_once, navigator_diff_simple, controller
 
 robot = robot_epuck.RobotEPuck("COM10")
-planner = planner_move_once.PlannerMoveOnce( (300, 1, math.pi/2) )
+planner = planner_move_once.PlannerMoveOnce( (0, 50, 2* math.pi) )
 navigator = navigator_diff_simple.NavigatorDiffSimple()
 controller = controller.Controller()
 

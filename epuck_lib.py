@@ -10,9 +10,9 @@ import time
 #       - Research for how many bit the stepper motor uses for counting steps   :
 
 # CONSTANTS
-COUNTER_BITS = 32  # No. of bits used by stepper motor to store counter
-WHEEL_DIAMETER = 41  # in mm
-WHEEL_BASE_MM = 53
+COUNTER_BITS = 16  # No. of bits used by stepper motor to store counter
+WHEEL_DIAMETER = 44  # in mm
+WHEEL_BASE_MM = 46
 STEPS_PER_REVOLUTION = 1000
 
 # steps_delta(last, current): int, calculates the difference in robot steps from the last
