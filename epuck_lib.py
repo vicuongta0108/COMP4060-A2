@@ -1,6 +1,7 @@
 from math import *
 import math
 import numpy as np
+import time
 
 # TODO:
 #   Date 21 Jan 2025
@@ -9,9 +10,9 @@ import numpy as np
 #       - Research for how many bit the stepper motor uses for counting steps   :
 
 # CONSTANTS
-COUNTER_BITS = 32  # No. of bits used by stepper motor to store counter
-WHEEL_DIAMETER = 41  # in mm
-WHEEL_BASE_MM = 53
+COUNTER_BITS = 16  # No. of bits used by stepper motor to store counter
+WHEEL_DIAMETER = 44  # in mm
+WHEEL_BASE_MM = 46
 STEPS_PER_REVOLUTION = 1000
 
 # steps_delta(last, current): int, calculates the difference in robot steps from the last
@@ -198,3 +199,62 @@ def diff_drive_inverse_kin(distance_mm, speed_mm_s, omega_rad):
     right_steps = abs(right_steps_s * time_to_travel)
 
     return int(left_steps_s), int(right_steps_s), int(left_steps), int(right_steps)
+
+
+def move_steps(epuckcomm, l_speed_steps_s, r_speed_steps_s,
+               l_target_steps, r_target_steps, Hz=10):
+    # pre-conditions: The connection with epuckcomm is already established
+    if not epuckcomm:
+        return ()  # return empty tuple
+
+    # TODO:
+    # This function sets the robot’s left and right wheel speed as given, and then starts a control loop that
+    # monitors the robot odometry readings to see how far (in motor steps) the robot has gone. The loop
+    # should stop after both the left and right targets were met (note that one may overshoot). Use
+    # time.sleep() to control the loop speed. After the targets are hit, make the robot stop moving and the
+    # function return. Return a tuple representing the actual left and right steps moved. Mine is 31 lines.
+
+    left_steps = 0
+    right_steps = 0
+
+    # set the last left and right step to what the robot state have
+    last_left_steps = epuckcomm.state.sens_left_motor_steps
+    last_right_steps = epuckcomm.state.sens_right_motor_steps
+
+    # actuators updated
+    epuckcomm.state.act_left_motor_speed = l_speed_steps_s
+    epuckcomm.state.act_right_motor_speed = r_speed_steps_s
+
+    try:
+        while (left_steps < l_target_steps) or (right_steps < r_target_steps):
+            # debug_print(_debug_as1_1, _script, f'l_left : {last_left_steps}')
+            # debug_print(_debug_as1_1, _script, f'l_right: {last_right_steps}')
+            # debug_print(_debug_as1_1, _script, '')
+            # sending the command
+            # epuckcomm.send_command()
+            epuckcomm.data_update()
+
+            # update the left_steps and right_steps variables
+
+            left_steps += abs(steps_delta(last_left_steps, epuckcomm.state.sens_left_motor_steps))
+            right_steps += abs(steps_delta(last_right_steps, epuckcomm.state.sens_right_motor_steps))
+            # debug_print(_debug_as1_1, _script, f'a_left : {left_steps}')
+            # debug_print(_debug_as1_1, _script, f'a_right: {right_steps}')
+            # debug_print(_debug_as1_1, _script, '')
+            last_left_steps = epuckcomm.state.sens_left_motor_steps
+            last_right_steps = epuckcomm.state.sens_right_motor_steps
+
+            time.sleep(1 / Hz)  # controlling the loop speed
+    finally:
+        epuckcomm.stop_all()
+
+    return (left_steps, right_steps)
+
+# Calculate new pose and print
+def calc_and_print_pose(epuckcomm, old_pos, last_l_steps, last_r_steps):
+    left_steps = steps_delta(last_l_steps, epuckcomm.state.sens_left_motor_steps)
+    right_steps = steps_delta(last_r_steps, epuckcomm.state.sens_right_motor_steps)
+    new_pos = diff_drive_forward_kin(old_pos, left_steps, right_steps)
+    print('Robot Position:', end="")
+    print_pose(new_pos)
+    return new_pos, epuckcomm.state.sens_left_motor_steps, epuckcomm.state.sens_right_motor_steps

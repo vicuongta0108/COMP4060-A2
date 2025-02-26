@@ -1,11 +1,10 @@
-# Abstract base class for the Robot module
-# Manages robot connection and communication, sends commands and gets sensor data.
 from abc import ABC, abstractmethod
+from epucklib.epuck_state import EPuckState
 
 class Robot(ABC):
-    def __init__(self):
-        self.robot_pos = [0.0, 0.0, 0.0] # x, y, theta
-        self.state = None
+    def __init__(self, com_port):
+        if not isinstance(com_port, str):
+            raise TypeError("com_port must be a string")
 
     @abstractmethod
     def setup(self):
@@ -21,12 +20,8 @@ class Robot(ABC):
 
     @abstractmethod
     def odom_reset(self):
-        # Reset odometry
-        self.robot_pos = [0.0, 0.0, 0.0]
-        print(f'Odometry reset!: {self}')
+        pass
 
-    # Should be passing *
     @abstractmethod
-    def odom_update(self, pos):
-        self.robot_pos = pos
-        print(f'Pose updated!: {self.robot_pos}')
+    def odom_update(self):
+        pass
