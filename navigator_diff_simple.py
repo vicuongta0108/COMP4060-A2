@@ -3,7 +3,6 @@ from robot import Robot
 from epuck_lib import *
 
 MAX_SPEED = 154 # mm/s
-MIN_SPEED = 500
 
 class NavigatorDiffSimple(Navigator):
     def __init__(self):
@@ -20,7 +19,7 @@ class NavigatorDiffSimple(Navigator):
         self._speed_n_steps = None
         self._left_steps_moved = 0
         self._right_steps_moved = 0
-        self.has_hit_target = False  # Reset target tracking
+        self.has_hit_target = True  # Reset target tracking
         self._last_l_steps = 0
         self._last_r_steps = 0
         print("Navigator finish setup!")
@@ -52,7 +51,7 @@ class NavigatorDiffSimple(Navigator):
         self._controller._robot._state.stop_all()  # Stop robot motors
         self._left_steps_moved = 0
         self._right_steps_moved = 0
-        self.has_hit_target = False
+        self.has_hit_target = True
         self._speed_n_steps = None
         self._last_l_steps = 0
         self._last_r_steps = 0
@@ -63,4 +62,5 @@ class NavigatorDiffSimple(Navigator):
         # self.target_mm = diff_drive_inverse_kin(target)
         actual_speed = target[1] * MAX_SPEED / 100
         self._speed_n_steps = diff_drive_inverse_kin(target[0], actual_speed, target[2])
+        self.has_hit_target = False
         
