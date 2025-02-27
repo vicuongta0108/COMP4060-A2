@@ -10,17 +10,32 @@ class PlannerLineFollow(Planner):
         self._last_error = 0
         self._integral = 0
         self.sens_ground_prox = None
+        self.THRESHOLD = 0 # Adjust this value to change the threshold for the line sensor
 
     def setup(self):
         self._last_error = 0
         self._integral = 0
         self.sens_ground_prox = self._controller._robot._state.sens_ground_prox
+        self.THRESHOLD = 500
 
     def get_line_position(self):
         l_sens_ground = self.sens_ground_prox[0]
+        c_sens_ground = self.sens_ground_prox[1]
         r_sens_ground = self.sens_ground_prox[2]
 
-        error = l_sens_ground - r_sens_ground
+        left_black = l_sens_ground < self.THRESHOLD
+        center_black = c_sens_ground < self.THRESHOLD
+        right_black = r_sens_ground < self.THRESHOLD
+
+        if center_black:
+            error = 0
+        elif left_black:
+            error = l_sens_ground - c_sens_ground # Move left
+        elif right_black:
+            error = c_sens_ground - r_sens_ground # Move right
+        else:
+            error = 0
+
         return error
     
     def compute_PID(self, error):
