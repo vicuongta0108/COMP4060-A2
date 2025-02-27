@@ -4,7 +4,6 @@ import random
 import time
 import numpy as np
 
-MAX_SPEED = 154 # mm/s
 TIME_OUT = 5 # seconds
 
 class PlannerFindFollowLine(State):
@@ -17,29 +16,26 @@ class PlannerFindFollowLine(State):
 
     def update(self):
         self._state = self._state.update() # Update the state
-        self.transition_to(self.parent.s_follow_line) # Transition to the next state
+        self.transition_to(self.parent.s_get_on_line) # Transition to the next state
 
 class State_FindLine(ABC):
     _debug = False
     def __init__(self, controller, parent, debug=True):
         super().__init__(controller, parent, debug)
+        self._sens_ground = self.controller._robot._state.sens_ground_prox
         
     def enter(self):  # called every time state is entered.
         print("Entering Find Line State")
         # Make robot move randomly to find the line
         state, _ = self.controller.robot.odom_update()
-        speed = random.randint(-MAX_SPEED, MAX_SPEED)
-        state.act_left_motor_speed = speed
-        state.act_right_motor_speed = speed
+        
         
     # called every tick, a state transition to itself
     # manage the navigator and access robot state in here.
     def update(self):  
         l_sens_ground = self.controller.robot.state.sens_ground_prox[0]
         r_sens_ground = self.controller.robot.state.sens.sens_ground_prox[2]
-        # Check if the line is found (check sensors values and replace 500, I put 500 here as an example)
-        if l_sens_ground < 500 and r_sens_ground < 500:
-            return self.transition_to(self.parent.s_get_on_line)
+        
         
         return self # Return the current state
 
