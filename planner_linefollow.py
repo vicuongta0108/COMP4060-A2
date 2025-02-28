@@ -1,7 +1,10 @@
 from planner import Planner
 import time
 
-Kp, Ki, Kd = 0.3, 0.17, 0.2# PID tuning parameters
+Kp, Ki, Kd = 0.02, 0.0017, 0.0015 # PID tuning parameters
+# P - adjust the response to the error. Too high -> oscillation, too low -> slow response
+# I - eliminates steady-state error. Too high -> overshoot, too low -> steady state error
+# D - Dampens the oscillation. Too high -> instability, too low -> slow response
 
 class PlannerLineFollow(Planner):
     def __init__(self):
@@ -15,7 +18,7 @@ class PlannerLineFollow(Planner):
 
     def setup(self):
         self._last_error = 0
-        self._base_speed = 40
+        self._base_speed = 20
         # self.sens_ground_prox = self._controller._robot._state.
         self.THRESHOLD = 0
         self._integral = 0

@@ -1,7 +1,7 @@
 import math
 import robot_epuck, planner_linefollow, navigator_diff_direct_percent, controller
 
-robot = robot_epuck.RobotEPuck("COM10")
+robot = robot_epuck.RobotEPuck("COM11")
 targets = (0.2, 0.2)
 planner = planner_linefollow.PlannerLineFollow()
 navigator = navigator_diff_direct_percent.NavigatorDiffDirectPercent(targets)
