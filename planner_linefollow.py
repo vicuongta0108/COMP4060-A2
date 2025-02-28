@@ -1,61 +1,58 @@
 from planner import Planner
+import time
 
-MAX_SPEED = 154 # mm/s
-Kp, Ki, Kd = 0.5, 0.01, 1.5 # PID tuning parameters
+Kp, Ki, Kd = 0.3, 0.17, 0.2# PID tuning parameters
 
 class PlannerLineFollow(Planner):
     def __init__(self):
         super().__init__()
         self._controller = None
         self._last_error = 0
+        # self._base_speed = 20
         self.sens_ground_prox = None
-        self.THRESHOLD = 0 # Adjust this value to change the threshold for the line sensor
+        self._last_error_time = 0
+        self.THRESHOLD = 2 # Adjust this value to change the threshold for the line sensor
 
     def setup(self):
         self._last_error = 0
-        self.sens_ground_prox = self._controller._robot._state.sens_ground_prox
-        self.THRESHOLD = 500
+        self._base_speed = 40
+        # self.sens_ground_prox = self._controller._robot._state.
+        self.THRESHOLD = 0
+        self._integral = 0
+        self._last_error_time = time.time()
 
     def get_line_position(self):
         l_sens_ground = self.sens_ground_prox[0]
-        c_sens_ground = self.sens_ground_prox[1]
         r_sens_ground = self.sens_ground_prox[2]
 
-        left_black = l_sens_ground < self.THRESHOLD
-        center_black = c_sens_ground < self.THRESHOLD
-        right_black = r_sens_ground < self.THRESHOLD
+        error = l_sens_ground - r_sens_ground
+        # if error < self.THRESHOLD:
+            # error = 0
 
-        if center_black:
-            error = 0
-        elif left_black:
-            error = l_sens_ground - c_sens_ground # Move left
-        elif right_black:
-            error = c_sens_ground - r_sens_ground # Move right
-        else:
-            error = 0
-
+        # print(error)
         return error
     
     def compute_PID(self, error):
-        integral += self.get_line_position() # Accumulate the error
-        derivative = error - self._last_error # Anticipate the next error
+        current_time = time.time()
+        self._integral += error * (current_time - self._last_error_time) # Accumulate the error
+        derivative = (error - self._last_error) / (current_time - self._last_error_time) # Anticipate the next error
         self._last_error = error # Update the last error
-
-        output = (Kp * error) + (Ki * integral) + (Kd * derivative)
+        self._last_error_time = current_time
+        output = (Kp * error) + (Ki * self._integral) + (Kd * derivative)
         return output
 
     def update(self):
+        
+        self.sens_ground_prox = self._controller._robot._state.sens_ground_prox
         error = self.get_line_position() # get the error
         controller_output = self.compute_PID(error) # Compute the PID controller output
 
-        state, _ = self._controller._robot.odom_update() # Get the current state of the robot
-        left_speed = MAX_SPEED - controller_output
-        right_speed = MAX_SPEED + controller_output
+        left_speed = self._base_speed + controller_output
+        right_speed = self._base_speed - controller_output
+        # print((left_speed, right_speed))
 
-        state.act_left_motor_speed = left_speed
-        state.act_right_motor_speed = right_speed
-
-        self._controller._robot._state = state
+        self._controller._navigator.set_target((left_speed / 100, right_speed / 100))
+        return True
 
     def terminate(self):
         self._controller._robot._state.stop_all()  # Stop robot motors
