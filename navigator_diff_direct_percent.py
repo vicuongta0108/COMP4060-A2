@@ -2,7 +2,7 @@ from navigator import Navigator
 from robot import Robot
 from epuck_lib import *
 
-MAX_SPEED = 154 # mm/s
+MAX_SPEED = 1200
 
 class NavigatorDiffDirectPercent(Navigator):
     def __init__(self, target):

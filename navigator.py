@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class Navigator(ABC):
     def __init__(self):
-        self.has_hit_target = True
+        self.has_hit_target = False
 
     @abstractmethod
     def setup(self, com_port):

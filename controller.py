@@ -14,8 +14,7 @@ class Controller:
         self._navigator = navigator
         self._robot = robot
         self._Hz = hz
-        # Register a pointer to itself in each module so they can find the controller ???
-        # Note: please confirm this is correct
+        # Register a pointer to itself in each module so they can find the controller
         self._planner._controller = self
         self._navigator._controller = self
         self._robot._controller = self
