@@ -163,6 +163,7 @@ class PlannerFindFollowLine(Planner):
     def __init__(self):
         super().__init__()
         self._controller = None
+        self._state = None
         
     def setup(self):
         # Create states
@@ -170,13 +171,18 @@ class PlannerFindFollowLine(Planner):
         self.s_get_on_line = State_GetOnLine(self._controller, self)
         self.s_follow_line = State_FollowLine(self._controller, self)
         self._state = self.s_find_line  # Start with find line state
+        self._state.enter()
         
     def update(self):
         self._state = self._state.update()  # Update current state
             
     def terminate(self):
-        self._controller._robot._state.stop_all()
+        if self._state:
+            self._state.leave()
+        if self._controller:
+            self._controller._robot._state.stop_all()
         self._controller = None
+        self._state = None
 
     def get_line_position(self):
         l_sens_ground = self._controller._robot._state.sens_ground_prox[0]
