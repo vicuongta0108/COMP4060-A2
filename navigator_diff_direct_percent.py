@@ -31,5 +31,6 @@ class NavigatorDiffDirectPercent(Navigator):
 
     # Use the given target tuple to solve how the robot should move.
     def set_target(self, target):
+        # print("Setting target to:", target)
         self._target = target
         

@@ -50,8 +50,9 @@ class PlannerLineFollow(Planner):
         error = self.get_line_position() # get the error
         controller_output = self.compute_PID(error) # Compute the PID controller output
 
-        left_speed = self._base_speed + controller_output
-        right_speed = self._base_speed - controller_output
+        state, _ = self._controller._robot.odom_update() # Get the current state of the robot
+        left_speed = MAX_SPEED + controller_output
+        right_speed = MAX_SPEED - controller_output
 
         self._controller._navigator.set_target((left_speed / 100, right_speed / 100))
         return True
