@@ -21,7 +21,7 @@ class State_FindLine(State):
         self._search_timer = 0
         # Randomly choose initial search direction
         self._direction = random.choice([-1, 1])
-        self.threshold = 20
+        self.threshold = 300
         
         if self._debug:
             print("Entering Find Line State")
@@ -31,12 +31,12 @@ class State_FindLine(State):
         state, _ = self.controller._robot.odom_update()
         
         # Get ground sensor readings
-        l_sens = self.controller._robot._state.sens_ground_prox[0]
-        r_sens = self.controller._robot._state.sens_ground_prox[2]
-        print("error:", abs(l_sens - r_sens))
+        l_sens = state.sens_ground_prox[0]
+        r_sens = state.sens_ground_prox[2]
+        print("error in find line:", abs(l_sens - r_sens))
         
         # # If line detected, transition to get_on_line
-        if abs(l_sens - r_sens) <= self.threshold:
+        if abs(l_sens - r_sens) > self.threshold:
             return self.transition_to(self.parent.s_get_on_line)
         
         # Switch direction every ~10 seconds to expand search
@@ -68,7 +68,7 @@ class State_GetOnLine(State):
         
     def enter(self):
         self._align_timer = 0
-        self.threshold = 30
+        self.threshold = 10
         if self._debug:
             print("Entering Get On Line State")
         
@@ -81,23 +81,22 @@ class State_GetOnLine(State):
         l_sens = state.sens_ground_prox[0]
         r_sens = state.sens_ground_prox[2]
 
-        # error = abs(l_sens - r_sens)
+        error = abs(l_sens - r_sens)
         # print("error:", error)
 
-        # if error > self.threshold:
-        #     self.controller._navigator.set_target((0.0, 0.0))
-
-        return self
+        if self._align_timer > self._max_align_time:
+            print("Taking too long to align")
+            return self.transition_to(self.parent.s_find_line)
         
-        # # If line lost, go back to finding
-        # if (abs(l_sens - r_sens) > self.threshold) or (self._align_timer > self._max_align_time):
-        #     print("Line found")
-        #     return self.transition_to(self.parent.s_find_line)
-        # # If sensors balanced, we're on the line
-        # else:
-        #     print("Line not found")
-        #     self.controller._navigator.set_target((0.0, 0.0))
-        #     return self.transition_to(self.parent.s_follow_line)
+        # If line lost, go back to finding
+        if abs(l_sens - r_sens) >= self.threshold:
+            print("Line not found")
+            return self.transition_to(self.parent.s_find_line)
+        # If sensors balanced, we're on the line
+        else:
+            print("Line found")
+            # self.controller._navigator.set_target((0.0, 0.0))
+            return self.transition_to(self.parent.s_follow_line)
             
         # # Turn towards the brighter sensor
         # turn_speed = MAX_SPEED * 0.4
