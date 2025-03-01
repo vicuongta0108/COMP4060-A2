@@ -7,8 +7,11 @@ planner = planner_find_follow_line.PlannerFindFollowLine()
 navigator = navigator_diff_direct_percent.NavigatorDiffDirectPercent(targets)
 controller = controller.Controller()
 
-controller.setup(planner, navigator, robot)
-controller.start()  # blocking until done
-controller.terminate()
+try:
+    controller.setup(planner, navigator, robot)
+    controller.start()  # blocking until done
+    controller.terminate()
+except KeyboardInterrupt:
+    controller.terminate()
 
 print("Controller exited")

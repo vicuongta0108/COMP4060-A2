@@ -36,6 +36,7 @@ class RobotEPuck(Robot):
         # print('Left motor speeds: ', self._state.act_left_motor_speed)
         # print('Right motor speeds: ', self._state.act_right_motor_speed)
         # print('Right motor steps: ', self._state.sens_right_motor_steps)
+        print('Robot:',(self._state.act_left_motor_speed, self._state.act_right_motor_speed))
         # print(self._state)
         self._epuckcomm.send_command()
 
