@@ -60,15 +60,35 @@ class State_FindLine(State):
         if self._debug:
             print("Leaving Find Line State")
 
+class State_StopRobot(State):
+    def __init__(self, controller, parent, debug=True):
+        super().__init__(controller, parent, debug)
+
+    def enter(self):
+        if self._debug:
+            print("Entering Stop Robot State")
+    
+    def update(self):
+        # state, _ = self.controller._robot.odom_update()
+        # state.act_left_motor_speed = 0
+        # state.act_right_motor_speed = 0
+        self.controller._navigator.set_target((0, 0))
+        return self
+    
+    def leave(self):
+        if self._debug:
+            print("Leaving Stop Robot State")
+
+    
 class State_GetOnLine(State):
     def __init__(self, controller, parent, debug=True):
         super().__init__(controller, parent, debug)
         self._align_timer = 0
-        self._max_align_time = 50  # ~1.5 seconds
+        self._max_align_time = 15  # ~1.5 seconds
         
     def enter(self):
         self._align_timer = 0
-        self.threshold = 10
+        self.threshold = 20
         if self._debug:
             print("Entering Get On Line State")
         
@@ -76,6 +96,8 @@ class State_GetOnLine(State):
         self._align_timer += 1
 
         state, _ = self.controller._robot.odom_update()
+
+        # self.controller._navigator.set_target((0.3, 0.3))
         
         # Get ground sensor readings
         l_sens = state.sens_ground_prox[0]
@@ -89,33 +111,35 @@ class State_GetOnLine(State):
             return self.transition_to(self.parent.s_find_line)
         
         # If line lost, go back to finding
-        if abs(l_sens - r_sens) >= self.threshold:
-            print("Line not found")
-            return self.transition_to(self.parent.s_find_line)
+        # if abs(l_sens - r_sens) >= self.threshold:
+        #     print("Line not found")
+        #     return self.transition_to(self.parent.s_find_line)
         # If sensors balanced, we're on the line
-        else:
+        if abs(error) < self.threshold:
             print("Line found")
-            # self.controller._navigator.set_target((0.0, 0.0))
-            return self.transition_to(self.parent.s_follow_line)
+            return self.transition_to(self.parent.s_stop_robot)
+            # return self.transition_to(self.parent.s_follow_line)
+
+        
             
-        # # Turn towards the brighter sensor
-        # turn_speed = MAX_SPEED * 0.4
+        # Turn towards the brighter sensor
+        turn_speed = MAX_SPEED * 0.4
         # state, _ = self.controller._robot.odom_update()
         
-        # if l_sens > r_sens:
-        #     state.act_left_motor_speed = -turn_speed
-        #     state.act_right_motor_speed = turn_speed
-        # else:
-        #     state.act_left_motor_speed = turn_speed
-        #     state.act_right_motor_speed = -turn_speed
+        if l_sens > r_sens:
+            state.act_left_motor_speed = -turn_speed
+            state.act_right_motor_speed = turn_speed
+        else:
+            state.act_left_motor_speed = turn_speed
+            state.act_right_motor_speed = -turn_speed
             
-        # self.controller._robot._state = state
+        self.controller._robot._state = state
             
         # # If taking too long to align, go back to finding
         # if 
         #     return self.transition_to(self.parent.s_find_line)
             
-        # return self
+        return self
 
     def leave(self):
         if self._debug:
@@ -179,14 +203,16 @@ class PlannerFindFollowLine(Planner):
         
     def setup(self):
         # Create states
-        self.s_find_line = State_FindLine(self._controller, self)
-        self.s_get_on_line = State_GetOnLine(self._controller, self)
+        self.s_find_line = State_FindLine(self._controller, self, debug=True)
+        self.s_get_on_line = State_GetOnLine(self._controller, self, debug=True)
+        self.s_stop_robot = State_StopRobot(self._controller, self, debug=True)
         # self.s_follow_line = State_FollowLine(self._controller, self)
         self._state = self.s_find_line  # Start with find line state
         self._state.enter()
         
     def update(self):
         # Get current state and update it
+        # print('state =', self._state)
         self._state = self._state.update()
         return True
             
@@ -197,24 +223,4 @@ class PlannerFindFollowLine(Planner):
             self._controller._robot._state.stop_all()
         self._controller = None
         self._state = None
-
-    def get_line_position(self):
-        l_sens_ground = self._controller._robot._state.sens_ground_prox[0]
-        r_sens_ground = self._controller._robot._state.sens_ground_prox[2]
-        error = l_sens_ground - r_sens_ground
-        return error
-    
-    def compute_PID(self, error):
-        self._integral += error
-        derivative = error - self._last_error
-        self._last_error = error
-        
-        output = (Kp * error) + (Ki * self._integral) + (Kd * derivative)
-        return output
-        
-    def set_motor_speeds(self, left_speed, right_speed):
-        state, _ = self._controller._robot.odom_update()
-        state.act_left_motor_speed = left_speed
-        state.act_right_motor_speed = right_speed
-        self._controller._robot._state = state
     
