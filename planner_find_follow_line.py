@@ -33,7 +33,13 @@ class State_FindLine(State):
         # Get ground sensor readings
         l_sens = state.sens_ground_prox[0]
         r_sens = state.sens_ground_prox[2]
-        print("error in find line:", abs(l_sens - r_sens))
+        # print("error in find line:", abs(l_sens - r_sens))
+
+        print("l_sens:", l_sens)
+        print("r_sens:", r_sens)
+        print("abs(l_sens - r_sens):", abs(l_sens - r_sens))
+        if (l_sens < 500 or r_sens < 500) and abs(l_sens - r_sens) < 100:
+            return self.transition_to(self.parent.s_perpendicular_line)
         
         # # If line detected, transition to get_on_line
         if abs(l_sens - r_sens) > self.threshold:
@@ -178,19 +184,23 @@ class State_PerpendicularLine(State):
     def __init__(self, controller, parent, debug=True):
         super().__init__(controller, parent, debug)
         self._align_timer = 0
-        self._max_align_time = 15  # ~1.5 seconds
+        self._max_align_time = 20  # ~1.5 seconds
 
     def enter(self):
         self._align_timer = 0
-        self.threshold = 20
+        self.threshold = 30
         if self._debug:
-            print("Entering Get On Line State")
+            print("Entering Get On Line Perpendicular State")
     
     def update(self):
         self.controller._navigator.set_target((-0.1, -0.2))
-        time.sleep(1.5)
+        
+        if self._align_timer > self._max_align_time:
+            # print("Taking too long to align")
+            return self.transition_to(self.parent.s_find_line)
 
-        return self.transition_to(self.parent.s_find_line)
+        self._align_timer += 1
+        return self
     
     def leave(self):
         if self._debug:
@@ -205,6 +215,7 @@ class State_FollowLine(State):
         self._last_error = 0
         self.sens_ground_prox = None
         self._last_error_time = 0
+        self._state = None
         # self.THRESHOLD = 2 # Adjust this value to change the threshold for the line sensor
 
     def enter(self):
@@ -213,10 +224,14 @@ class State_FollowLine(State):
         # self.THRESHOLD = 0
         self._integral = 0
         self._last_error_time = time.time()
+        self._state = None
 
     def get_line_position(self):
         l_sens_ground = self.sens_ground_prox[0]
         r_sens_ground = self.sens_ground_prox[2]
+
+        # print("l_sens_ground:", l_sens_ground, "r_sens_ground:", r_sens_ground)
+    
 
         error = l_sens_ground - r_sens_ground
         # if error < self.THRESHOLD:
@@ -236,12 +251,15 @@ class State_FollowLine(State):
 
     def update(self):
         
-        self.sens_ground_prox = self.controller._robot._state.sens_ground_prox
+        self._state, _ = self.controller._robot.odom_update() # Get the current state of the robot
+        self.sens_ground_prox = self._state.sens_ground_prox
         error = self.get_line_position() # get the error
         controller_output = self.compute_PID(error) # Compute the PID controller output
-
+        print("error:", error, "controller_output:", controller_output)
         left_speed = self._base_speed + controller_output
         right_speed = self._base_speed - controller_output
+
+        print("left_speed:", left_speed / 100, "right_speed:", right_speed / 100)
 
         self.controller._navigator.set_target((left_speed / 100, right_speed / 100))
         return self
@@ -266,7 +284,7 @@ class PlannerFindFollowLine(Planner):
         self.s_stop_robot = State_StopRobot(self._controller, self, debug=True)
         self.s_follow_line = State_FollowLine(self._controller, self)
         self.s_perpendicular_line = State_PerpendicularLine(self._controller, self)
-        self._state = self.s_find_line  # Start with find line state
+        self._state = self.s_follow_line  # Start with find line state
         self._state.enter()
         
     def update(self):
