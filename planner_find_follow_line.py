@@ -9,7 +9,7 @@ TIME_OUT = 5 # seconds
 
 # Constants from planner_linefollow.py
 MAX_SPEED = 1200  # mm/s
-Kp, Ki, Kd = 0.5, 0.01, 1.5  # PID tuning parameters
+# Kp, Ki, Kd = 0.5, 0.01, 1.5  # PID tuning parameters
 
 class State_FindLine(State):
     def __init__(self, controller, parent, debug=True):
@@ -208,7 +208,7 @@ class State_PerpendicularLine(State):
 
 
 class State_FollowLine(State):
-    Kp, Ki, Kd = 0.02, 0.0017, 0.0015 # PID tuning parameters for 20% speed
+    # Kp, Ki, Kd = 0.02, 0.0017, 0.0015 # PID tuning parameters for 20% speed
 # Kp, Ki, Kd = 0.0408, 0.0030, 0.0033 # 0.0037, 0.0005 # PID tuning parameters for 30% speed
     def __init__(self, self_controller, parent, debug=True):
         super().__init__(self_controller, parent, debug)
@@ -216,6 +216,9 @@ class State_FollowLine(State):
         self.sens_ground_prox = None
         self._last_error_time = 0
         self._state = None
+        self.kp = 0.023
+        self.ki = 0.0017
+        self.kd = 0.0015
         # self.THRESHOLD = 2 # Adjust this value to change the threshold for the line sensor
 
     def enter(self):
@@ -230,7 +233,7 @@ class State_FollowLine(State):
         l_sens_ground = self.sens_ground_prox[0]
         r_sens_ground = self.sens_ground_prox[2]
 
-        print("l_sens_ground:", l_sens_ground, "r_sens_ground:", r_sens_ground)
+        # print("l_sens_ground:", l_sens_ground, "r_sens_ground:", r_sens_ground)
     
 
         error = l_sens_ground - r_sens_ground
@@ -246,7 +249,7 @@ class State_FollowLine(State):
         derivative = (error - self._last_error) / (current_time - self._last_error_time) # Anticipate the next error
         self._last_error = error # Update the last error
         self._last_error_time = current_time
-        output = (Kp * error) + (Ki * self._integral) + (Kd * derivative)
+        output = (self.kp * error) + (self.ki * self._integral) + (self.kd * derivative)
         return output
 
     def update(self):
@@ -255,7 +258,7 @@ class State_FollowLine(State):
         self.sens_ground_prox = self._state.sens_ground_prox
         error = self.get_line_position() # get the error
         controller_output = self.compute_PID(error) # Compute the PID controller output
-        print("error:", error, "controller_output:", controller_output)
+        # print("error:", error, "controller_output:", controller_output)
         left_speed = self._base_speed + controller_output
         right_speed = self._base_speed - controller_output
 
