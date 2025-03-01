@@ -230,7 +230,7 @@ class State_FollowLine(State):
         l_sens_ground = self.sens_ground_prox[0]
         r_sens_ground = self.sens_ground_prox[2]
 
-        # print("l_sens_ground:", l_sens_ground, "r_sens_ground:", r_sens_ground)
+        print("l_sens_ground:", l_sens_ground, "r_sens_ground:", r_sens_ground)
     
 
         error = l_sens_ground - r_sens_ground
