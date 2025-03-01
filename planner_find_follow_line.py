@@ -47,9 +47,11 @@ class State_FindLine(State):
         if self._direction > 0:
             # state.act_left_motor_speed = outer_speed
             # state.act_right_motor_speed = inner_speed
-            self.controller._navigator.set_target((0.4, 0.05))
+            # self.controller._navigator.set_target((0.4, 0.05))
+            self.controller._navigator.set_target((0.2, 0.2))
         else:
-            self.controller._navigator.set_target((0.05, 0.4))
+            self.controller._navigator.set_target((0.2, 0.2))
+            # self.controller._navigator.set_target((0.05, 0.4))
             # state.act_left_motor_speed = inner_speed
             # state.act_right_motor_speed = outer_speed
             
@@ -115,9 +117,12 @@ class State_GetOnLine(State):
         #     print("Line not found")
         #     return self.transition_to(self.parent.s_find_line)
         # If sensors balanced, we're on the line
+        if l_sens < 100 and r_sens < 100:
+            return self.transition_to(self.parent.s_perpendicular_line)
+        
         if abs(error) < self.threshold:
             print("Line found")
-            return self.transition_to(self.parent.s_stop_robot)
+            return self.transition_to(self.parent.s_follow_line)
             # return self.transition_to(self.parent.s_follow_line)
 
         
@@ -145,55 +150,108 @@ class State_GetOnLine(State):
         if self._debug:
             print("Leaving Get On Line State")
 
-class State_FollowLine(State):
+# class State_MoveBacAfterPerpendicular(State):
+#     def __init__(self, controller, parent, debug=True):
+#         super().__init__(controller, parent, debug)
+#         self._align_timer = 0
+#         self._max_align_time = 15  # ~1.5 seconds
+        
+#     def enter(self):
+#         self._align_timer = 0
+#         self.threshold = 20
+#         if self._debug:
+#             print("Entering Get On Line State")
+        
+#     def update(self):
+        
+#         self.controller._navigator.set_target((-0.1, -0.2))
+
+
+#         return self.transition_to(self.parent.find_line)
+
+#     def leave(self):
+#         if self._debug:
+#             print("Leaving Get On Line State")
+
+class State_PerpendicularLine(State):
+
     def __init__(self, controller, parent, debug=True):
         super().__init__(controller, parent, debug)
-        self._lost_line_counter = 0
+        self._align_timer = 0
+        self._max_align_time = 15  # ~1.5 seconds
+
+    def enter(self):
+        self._align_timer = 0
+        self.threshold = 20
+        if self._debug:
+            print("Entering Get On Line State")
+    
+    def update(self):
+        self.controller._navigator.set_target((-0.1, -0.2))
+        time.sleep(1.5)
+
+        return self.transition_to(self.parent.s_find_line)
+    
+    def leave(self):
+        if self._debug:
+            print("Leaving Get On Line State")
+
+
+class State_FollowLine(State):
+    Kp, Ki, Kd = 0.02, 0.0017, 0.0015 # PID tuning parameters for 20% speed
+# Kp, Ki, Kd = 0.0408, 0.0030, 0.0033 # 0.0037, 0.0005 # PID tuning parameters for 30% speed
+    def __init__(self, self_controller, parent, debug=True):
+        super().__init__(self_controller, parent, debug)
         self._last_error = 0
-        self._integral = 0
-        
+        self.sens_ground_prox = None
+        self._last_error_time = 0
+        # self.THRESHOLD = 2 # Adjust this value to change the threshold for the line sensor
+
     def enter(self):
         self._last_error = 0
+        self._base_speed = 20 # % speed
+        # self.THRESHOLD = 0
         self._integral = 0
-        self._lost_line_counter = 0
-        if self._debug:
-            print("Entering Follow Line State")
-        
+        self._last_error_time = time.time()
+
+    def get_line_position(self):
+        l_sens_ground = self.sens_ground_prox[0]
+        r_sens_ground = self.sens_ground_prox[2]
+
+        error = l_sens_ground - r_sens_ground
+        # if error < self.THRESHOLD:
+            # error = 0
+
+        # print(error)
+        return error
+    
+    def compute_PID(self, error):
+        current_time = time.time()
+        self._integral += error * (current_time - self._last_error_time) # Accumulate the error
+        derivative = (error - self._last_error) / (current_time - self._last_error_time) # Anticipate the next error
+        self._last_error = error # Update the last error
+        self._last_error_time = current_time
+        output = (Kp * error) + (Ki * self._integral) + (Kd * derivative)
+        return output
+
     def update(self):
-        # Get line position error
-        l_sens = self.controller._robot._state.sens_ground_prox[0]
-        r_sens = self.controller._robot._state.sens_ground_prox[2]
-        error = l_sens - r_sens
         
-        # Check if line is lost
-        if abs(error) < 0.1:
-            self._lost_line_counter += 1
-            if self._lost_line_counter > 20:  # Lost for ~0.6 seconds
-                return self.transition_to(self.parent.s_find_line)
-        else:
-            self._lost_line_counter = 0
-            
-        # PID control
-        self._integral += error
-        derivative = error - self._last_error
-        self._last_error = error
-        
-        controller_output = (Kp * error) + (Ki * self._integral) + (Kd * derivative)
-        
-        # Set motor speeds
-        left_speed = MAX_SPEED - controller_output
-        right_speed = MAX_SPEED + controller_output
-        
-        state, _ = self.controller._robot.odom_update()
-        state.act_left_motor_speed = left_speed
-        state.act_right_motor_speed = right_speed
-        self.controller._robot._state = state
-        
+        self.sens_ground_prox = self.controller._robot._state.sens_ground_prox
+        error = self.get_line_position() # get the error
+        controller_output = self.compute_PID(error) # Compute the PID controller output
+
+        left_speed = self._base_speed + controller_output
+        right_speed = self._base_speed - controller_output
+
+        self.controller._navigator.set_target((left_speed / 100, right_speed / 100))
         return self
 
     def leave(self):
-        if self._debug:
-            print("Leaving Follow Line State")
+        self.controller._robot._state.stop_all()  # Stop robot motors
+        self.controller = None
+        self._last_error = 0
+        self.sens_ground_prox = None
+
 
 class PlannerFindFollowLine(Planner):
     def __init__(self):
@@ -206,7 +264,8 @@ class PlannerFindFollowLine(Planner):
         self.s_find_line = State_FindLine(self._controller, self, debug=True)
         self.s_get_on_line = State_GetOnLine(self._controller, self, debug=True)
         self.s_stop_robot = State_StopRobot(self._controller, self, debug=True)
-        # self.s_follow_line = State_FollowLine(self._controller, self)
+        self.s_follow_line = State_FollowLine(self._controller, self)
+        self.s_perpendicular_line = State_PerpendicularLine(self._controller, self)
         self._state = self.s_find_line  # Start with find line state
         self._state.enter()
         
