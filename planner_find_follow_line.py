@@ -43,6 +43,7 @@ class State_FindLine(State):
         
         # # If line detected, transition to get_on_line
         if abs(l_sens - r_sens) > self.threshold:
+            self.controller._navigator.set_tartget((0.0, 0.0)) # stop the robot and transition to get_on_line state
             return self.transition_to(self.parent.s_get_on_line)
         
         # Switch direction every ~10 seconds to expand search
@@ -50,16 +51,13 @@ class State_FindLine(State):
             self._direction *= -1
             self._search_timer = 0
             
+        # Switch turn direction
         if self._direction > 0:
-            # state.act_left_motor_speed = outer_speed
-            # state.act_right_motor_speed = inner_speed
-            # self.controller._navigator.set_target((0.4, 0.05))
-            self.controller._navigator.set_target((0.2, 0.2))
+            self.controller._navigator.set_target((0.4, 0.05))
+            # self.controller._navigator.set_target((0.2, 0.2))
         else:
-            self.controller._navigator.set_target((0.2, 0.2))
-            # self.controller._navigator.set_target((0.05, 0.4))
-            # state.act_left_motor_speed = inner_speed
-            # state.act_right_motor_speed = outer_speed
+            # self.controller._navigator.set_target((0.2, 0.2))
+            self.controller._navigator.set_target((0.05, 0.4))
             
         self.controller._robot._state = state
         return self
@@ -87,7 +85,6 @@ class State_StopRobot(State):
         if self._debug:
             print("Leaving Stop Robot State")
 
-    
 class State_GetOnLine(State):
     def __init__(self, controller, parent, debug=True):
         super().__init__(controller, parent, debug)
@@ -96,28 +93,41 @@ class State_GetOnLine(State):
         
     def enter(self):
         self._align_timer = 0
-        self.threshold = 20
+        self.threshold = 100
         if self._debug:
             print("Entering Get On Line State")
         
     def update(self):
         self._align_timer += 1
 
-        state, _ = self.controller._robot.odom_update()
+        if self._align_timer > self._max_align_time:
+            print("Taking too long to align")
+            return self.transition_to(self.parent.s_find_line)
 
-        # self.controller._navigator.set_target((0.3, 0.3))
+        state, _ = self.controller._robot.odom_update()
         
         # Get ground sensor readings
         l_sens = state.sens_ground_prox[0]
         r_sens = state.sens_ground_prox[2]
 
-        error = abs(l_sens - r_sens)
-        # print("error:", error)
-
-        if self._align_timer > self._max_align_time:
-            print("Taking too long to align")
-            return self.transition_to(self.parent.s_find_line)
+        error = l_sens - r_sens # negative if left sensor is nearer, positive when right sensor is nearer
+        print("error:", abs(error))
         
+        # Turn towards the brighter sensor
+        turn_speed = MAX_SPEED * 0.4
+        # state, _ = self.controller._robot.odom_update()
+        
+        if int(abs(error)) < self.threshold:
+            state.act_left_motor_speed = -turn_speed
+            state.act_right_motor_speed = turn_speed
+        else:
+            state.act_left_motor_speed = turn_speed
+            state.act_right_motor_speed = -turn_speed
+        
+        if int(abs(error)) <= (self.threshold / 2): # robot aligns with line
+            state.act_left_motor_speed = state.act_right_motor_speed = 0 # stop the robot, prepare to follow the line
+            return self.transition_to(self.parent.s_follow_line)
+
         # If line lost, go back to finding
         # if abs(l_sens - r_sens) >= self.threshold:
         #     print("Line not found")
@@ -126,29 +136,12 @@ class State_GetOnLine(State):
         if l_sens < 100 and r_sens < 100:
             return self.transition_to(self.parent.s_perpendicular_line)
         
-        if abs(error) < self.threshold:
-            print("Line found")
-            return self.transition_to(self.parent.s_follow_line)
+        # if abs(error) < self.threshold:
+        #     print("Line found")
+        #     return self.transition_to(self.parent.s_follow_line)
             # return self.transition_to(self.parent.s_follow_line)
-
         
-            
-        # Turn towards the brighter sensor
-        turn_speed = MAX_SPEED * 0.4
-        # state, _ = self.controller._robot.odom_update()
-        
-        if l_sens > r_sens:
-            state.act_left_motor_speed = -turn_speed
-            state.act_right_motor_speed = turn_speed
-        else:
-            state.act_left_motor_speed = turn_speed
-            state.act_right_motor_speed = -turn_speed
-            
         self.controller._robot._state = state
-            
-        # # If taking too long to align, go back to finding
-        # if 
-        #     return self.transition_to(self.parent.s_find_line)
             
         return self
 
@@ -287,7 +280,7 @@ class PlannerFindFollowLine(Planner):
         self.s_stop_robot = State_StopRobot(self._controller, self, debug=True)
         self.s_follow_line = State_FollowLine(self._controller, self)
         self.s_perpendicular_line = State_PerpendicularLine(self._controller, self)
-        self._state = self.s_follow_line  # Start with find line state
+        self._state = self.s_find_line # Start with find line state
         self._state.enter()
         
     def update(self):
