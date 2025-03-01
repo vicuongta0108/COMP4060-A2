@@ -33,6 +33,9 @@ class RobotEPuck(Robot):
 
     def update(self):
         self._epuckcomm.state = self._state
+        # print('Left motor speeds: ', self._state.act_left_motor_speed)
+        # print('Right motor speeds: ', self._state.act_right_motor_speed)
+        # print('Right motor steps: ', self._state.sens_right_motor_steps)
         # print(self._state)
         self._epuckcomm.send_command()
 
