@@ -5,9 +5,8 @@ import time
 # I - eliminates steady-state error. Too high -> overshoot, too low -> steady state error
 # D - Dampens the oscillation. Too high -> instability, too low -> slow response
 
-# Kp, Ki, Kd = 0.02, 0.0017, 0.0015 # PID tuning parameters for 20% speed
-Kp, Ki, Kd = 0.0408, 0.0030, 0.0033 # 0.0037, 0.0005 # PID tuning parameters for 30% speed
-# Kp, Ki, Kd = 0.057, 0.0, 0.005 # PID tuning parameters for 40% speed
+Kp, Ki, Kd = 0.02, 0.0017, 0.0015 # PID tuning parameters for 20% speed
+# Kp, Ki, Kd = 0.0408, 0.0030, 0.0033 # 0.0037, 0.0005 # PID tuning parameters for 30% speed
 
 class PlannerLineFollow(Planner):
     def __init__(self):
@@ -20,7 +19,7 @@ class PlannerLineFollow(Planner):
 
     def setup(self):
         self._last_error = 0
-        self._base_speed = 30 # % speed
+        self._base_speed = 20 # % speed
         # self.THRESHOLD = 0
         self._integral = 0
         self._last_error_time = time.time()
